@@ -3,9 +3,9 @@ import { useRecoilState } from 'recoil';
 import { useEffect, useMemo, useState } from 'react';
 import useSaveMarks from '../../hooks/marks/useSaveMarks';
 import { EnrollmentStatus, TableDataRefetch } from 'dhis2-semis-types';
-import { formatMarksToSave } from '../../utils/marks/formatMarksToPost';
 import { RulesEngine, useUploadEvents, useUrlParams } from 'dhis2-semis-functions';
 import { performanceFieldsMapping } from './performanceFieldsMapping';
+import { getTermRemarkDataValue, PerformanceConfig } from '../../utils/marks/termRemarks';
 
 interface valueType extends Record<string, any> {
     enrollmentId: string
@@ -22,12 +22,13 @@ type FieldsPerformancePros = {
     otherProps: any,
     program: string
     originalData: any
+    performanceConfig?: PerformanceConfig
 }
 
 export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { urlParameters } = useUrlParams()
     const { programStage, schoolName } = urlParameters
-    const { dataElements, value, program, originalData } = props;
+    const { dataElements, value, program, originalData, performanceConfig } = props;
     const [values, setValues] = useState({ ...value })
 
     const { uploadValues } = useUploadEvents()
@@ -61,6 +62,17 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
     }
 
     const handleBlur = async () => {
+        const termRemarkDataValue = getTermRemarkDataValue({
+            rowData: originalData,
+            editedScoreDataElement: dataElements?.id ?? "",
+            editedScore: newMark,
+            performanceConfig
+        })
+        const dataValues = [
+            { value: newMark, dataElement: dataElements?.id },
+            ...(termRemarkDataValue ? [termRemarkDataValue] : [])
+        ]
+
         if (!values?.programStageEvent) {
             const data = {
                 events: [{
@@ -75,7 +87,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                     trackedEntity: value?.trackedEntity,
                     occurredAt: format(new Date(), "yyyy-MM-dd"),
                     scheduledAt: format(new Date(), "yyyy-MM-dd"),
-                    dataValues: [{ value: newMark, dataElement: dataElements?.id }]
+                    dataValues
                 }]
             }
 
@@ -85,10 +97,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
         else {
             const marks = {
                 events: [{
-                    dataValues: [{
-                        value: newMark,
-                        dataElement: dataElements?.id,
-                    }],
+                    dataValues,
                     orgUnit: value?.orgUnitId,
                     program: value?.programId,
                     programStage: programStage!,
@@ -105,6 +114,9 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                         // Update the original data with the new mark
                         updatedVariables[0].value = newMark;
                         originalData[dataElements.id] = newMark;
+                        if (termRemarkDataValue) {
+                            originalData[termRemarkDataValue.dataElement] = termRemarkDataValue.value;
+                        }
                     })
                     .catch(() => {
                         setTimeout(() => {

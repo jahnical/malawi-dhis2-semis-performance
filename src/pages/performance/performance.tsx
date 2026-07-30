@@ -142,6 +142,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
               tableData={includeFields({
                 rowsData: tableData.data, mode: editionMode, dataElementIds, program: program!.id,
                 headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }),
+                performanceConfig: dataStoreData.performance,
               })}
               defaultFilterNumber={5}
               filterState={filterState}
