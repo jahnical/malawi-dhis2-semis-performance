@@ -6,6 +6,7 @@ import { EnrollmentStatus, TableDataRefetch } from 'dhis2-semis-types';
 import { RulesEngine, useUploadEvents, useUrlParams } from 'dhis2-semis-functions';
 import { performanceFieldsMapping } from './performanceFieldsMapping';
 import { getTermRemarkDataValue, PerformanceConfig } from '../../utils/marks/termRemarks';
+import { subjectsForGrade } from '../../utils/subjects/subjectsForGrade';
 
 interface valueType extends Record<string, any> {
     enrollmentId: string
@@ -27,7 +28,7 @@ type FieldsPerformancePros = {
 
 export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { urlParameters } = useUrlParams()
-    const { programStage, schoolName } = urlParameters
+    const { programStage, schoolName, grade } = urlParameters
     const { dataElements, value, program, originalData, performanceConfig } = props;
     const [values, setValues] = useState({ ...value })
 
@@ -62,11 +63,13 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
     }
 
     const handleBlur = async () => {
+        const applicableSubjectIds = subjectsForGrade(performanceConfig, grade)
         const termRemarkDataValue = getTermRemarkDataValue({
             rowData: originalData,
             editedScoreDataElement: dataElements?.id ?? "",
             editedScore: newMark,
-            performanceConfig
+            performanceConfig,
+            applicableSubjectIds
         })
         const dataValues = [
             { value: newMark, dataElement: dataElements?.id },

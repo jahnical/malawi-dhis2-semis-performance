@@ -22,6 +22,7 @@ type TermRemarkDataValueProps = {
     editedScoreDataElement: string
     editedScore: unknown
     performanceConfig?: PerformanceConfig
+    applicableSubjectIds?: Set<string> | null
 }
 
 function toScore(value: unknown): number {
@@ -35,14 +36,16 @@ function getTermRemarkDataValue({
     rowData,
     editedScoreDataElement,
     editedScore,
-    performanceConfig
+    performanceConfig,
+    applicableSubjectIds
 }: TermRemarkDataValueProps) {
     const termRemarksMapping = performanceConfig?.termRemarksMapping
     const termRemarkDataElement = termRemarksMapping?.dataElement
     const ranges = termRemarksMapping?.ranges ?? []
     const scoreDataElements = performanceConfig?.subjects
         ?.map((subject) => subject.scoreDataElement)
-        .filter((scoreDataElement): scoreDataElement is string => Boolean(scoreDataElement)) ?? []
+        .filter((scoreDataElement): scoreDataElement is string => Boolean(scoreDataElement))
+        .filter((scoreDataElement) => !applicableSubjectIds || applicableSubjectIds.has(scoreDataElement)) ?? []
 
     if (!termRemarkDataElement || scoreDataElements.length === 0 || ranges.length === 0) {
         return null
