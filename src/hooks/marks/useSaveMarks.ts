@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDataEngine } from "@dhis2/app-runtime"
-import { useShowAlerts } from "dhis2-semis-functions";
+import { formatTrackerError, useShowAlerts } from "dhis2-semis-functions";
 
 const POST_DATA_VALUE: any = {
     type: 'create',
@@ -41,8 +41,8 @@ export default function useSaveMarks() {
                 setError(true);
                 setLoading(false);
                 show({
-                    message: `Could not save the marks: ${error.details.message}`,
-                    type: { critical: true }
+                    message: `Could not save the marks: ${formatTrackerError(error)}`,
+                    type: { critical: true, duration: 15000 }
                 });
                 setTimeout(() => { hide; setError(false); }, 3000);
             })
