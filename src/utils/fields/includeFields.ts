@@ -2,6 +2,7 @@ import { cloneDeep } from 'lodash';
 import FieldsPerformance from '../../components/marks/FieldsPerformance';
 import React from 'react';
 import { EnrollmentStatus } from 'dhis2-semis-types';
+import { PerformanceConfig } from '../marks/termRemarks';
 
 interface IncludeFieldsProps {
     rowsData: Record<string, any>[];
@@ -19,6 +20,7 @@ interface IncludeFieldsProps {
     dataElementIds: string[];
     otherProps?: any;
     program: string;
+    performanceConfig?: PerformanceConfig;
 }
 
 interface changeDataElementTypeProps {
@@ -36,7 +38,7 @@ interface changeDataElementTypeProps {
 }
 
 export const includeFields = (props: IncludeFieldsProps) => {
-    const { rowsData, headerRows, mode, dataElementIds, otherProps, program } = props;
+    const { rowsData, headerRows, mode, dataElementIds, otherProps, program, performanceConfig } = props;
 
     // Create a deep copy of the input rowsData to avoid mutating the original
     const modifiedRowsData = cloneDeep(rowsData);
@@ -64,6 +66,7 @@ export const includeFields = (props: IncludeFieldsProps) => {
                     // handleChange, error, and warning would typically be passed from a parent component
                     program: program,
                     originalData: rowsData[i],
+                    performanceConfig,
                 });
             }
         });

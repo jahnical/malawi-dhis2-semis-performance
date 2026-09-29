@@ -8,6 +8,7 @@ import EnrollmentActionsButtons from "../../components/enrollmentButtons/Enrollm
 import { RulesEngine, useHeader, useTableData, useTableSort, useUrlParams, useViewPortWidth } from "dhis2-semis-functions";
 import { changeDataElementType, includeFields } from '../../utils/fields/includeFields';
 import useGetSelectedKeys from '../../hooks/config/useGetSelectedKeys';
+import { subjectsForGrade } from '../../utils/subjects/subjectsForGrade';
 
 interface ProgramStage {
   id: string;
@@ -114,14 +115,19 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
     add("programStage", value.id)
   }
 
-  const dataElementIds: any = termSelected?.programStageDataElements.map(
+  const allStageDataElementIds: any = termSelected?.programStageDataElements.map(
     (item) => item.dataElement.id
   );
+
+  const groupSubjectIds = subjectsForGrade(dataStoreData.performance, grade);
+  const dataElementIds: any = groupSubjectIds
+    ? allStageDataElementIds?.filter((id: string) => groupSubjectIds.has(id))
+    : allStageDataElementIds;
 
   return (
     <div style={{ height: "85vh" }}>
       {
-        !(Boolean(schoolName) && Boolean(school)) ?
+        !(Boolean(schoolName) && Boolean(school) && Boolean(grade)) ?
           <InfoPage
             title={i18n.t("SEMIS-Performance")}
             sections={[
@@ -144,6 +150,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
               tableData={includeFields({
                 rowsData: tableData.data, mode: editionMode, dataElementIds, program: program!.id,
                 headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }),
+                performanceConfig: dataStoreData.performance,
               })}
               defaultFilterNumber={5}
               filterState={filterState}
