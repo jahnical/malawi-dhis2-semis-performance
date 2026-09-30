@@ -1,11 +1,12 @@
 import { format } from 'date-fns';
 import { useRecoilState } from 'recoil';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSaveMarks from '../../hooks/marks/useSaveMarks';
 import { EnrollmentStatus, TableDataRefetch } from 'dhis2-semis-types';
 import { RulesEngine, useUploadEvents, useUrlParams } from 'dhis2-semis-functions';
 import { performanceFieldsMapping } from './performanceFieldsMapping';
 import { getTermRemarkDataValue, PerformanceConfig } from '../../utils/marks/termRemarks';
+import { getGradeDataValue } from '../../utils/marks/gradeFromScore';
 import { subjectsForGrade } from '../../utils/subjects/subjectsForGrade';
 
 interface valueType extends Record<string, any> {
@@ -24,12 +25,13 @@ type FieldsPerformancePros = {
     program: string
     originalData: any
     performanceConfig?: PerformanceConfig
+    onRowUpdate?: (matcher: (row: Record<string, any>) => boolean, patch: Record<string, any>) => void
 }
 
 export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { urlParameters } = useUrlParams()
     const { programStage, schoolName, grade } = urlParameters
-    const { dataElements, value, program, originalData, performanceConfig } = props;
+    const { dataElements, value, program, originalData, performanceConfig, onRowUpdate } = props;
     const [values, setValues] = useState({ ...value })
 
     const { uploadValues } = useUploadEvents()
@@ -48,6 +50,18 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
     useEffect(() => {
         runRulesEngine({ overrideValues: memoizedValues, overrideVariables: memoizedDataElements as any })
     }, [value, newMark])
+
+    // Picks up a value patched into this row from elsewhere (e.g. a grade auto-computed by
+    // the paired score field's own save) without needing a full table refetch. Compares
+    // against the previously seen prop, not against newMark, so this never fires on mount
+    // or fights with the user's own in-progress typing.
+    const prevExternalValue = useRef(dataElements?.value)
+    useEffect(() => {
+        if (prevExternalValue.current !== dataElements?.value) {
+            prevExternalValue.current = dataElements?.value
+            setNewMark(dataElements?.value)
+        }
+    }, [dataElements?.value])
 
     const handleChange = (e: any) => {
         const newValue = e?.target?.value ?? e
@@ -71,9 +85,15 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
             performanceConfig,
             applicableSubjectIds
         })
+        const gradeDataValue = getGradeDataValue({
+            editedScoreDataElement: dataElements?.id ?? "",
+            editedScore: newMark,
+            performanceConfig
+        })
         const dataValues = [
             { value: newMark, dataElement: dataElements?.id },
-            ...(termRemarkDataValue ? [termRemarkDataValue] : [])
+            ...(termRemarkDataValue ? [termRemarkDataValue] : []),
+            ...(gradeDataValue ? [gradeDataValue] : [])
         ]
 
         if (!values?.programStageEvent) {
@@ -119,6 +139,16 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                         originalData[dataElements.id] = newMark;
                         if (termRemarkDataValue) {
                             originalData[termRemarkDataValue.dataElement] = termRemarkDataValue.value;
+                        }
+                        if (gradeDataValue) {
+                            originalData[gradeDataValue.dataElement] = gradeDataValue.value;
+                            // The paired grade field is its own table cell/component instance -
+                            // patch just this row locally so it picks up the new value, instead
+                            // of refetching the whole table.
+                            onRowUpdate?.(
+                                (row) => row.trackedEntity === value?.trackedEntity,
+                                { [gradeDataValue.dataElement]: gradeDataValue.value }
+                            )
                         }
                     })
                     .catch(() => {

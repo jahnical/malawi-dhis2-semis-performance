@@ -21,6 +21,7 @@ interface IncludeFieldsProps {
     otherProps?: any;
     program: string;
     performanceConfig?: PerformanceConfig;
+    onRowUpdate?: (matcher: (row: Record<string, any>) => boolean, patch: Record<string, any>) => void;
 }
 
 interface changeDataElementTypeProps {
@@ -38,7 +39,7 @@ interface changeDataElementTypeProps {
 }
 
 export const includeFields = (props: IncludeFieldsProps) => {
-    const { rowsData, headerRows, mode, dataElementIds, otherProps, program, performanceConfig } = props;
+    const { rowsData, headerRows, mode, dataElementIds, otherProps, program, performanceConfig, onRowUpdate } = props;
 
     // Create a deep copy of the input rowsData to avoid mutating the original
     const modifiedRowsData = cloneDeep(rowsData);
@@ -67,6 +68,7 @@ export const includeFields = (props: IncludeFieldsProps) => {
                     program: program,
                     originalData: rowsData[i],
                     performanceConfig,
+                    onRowUpdate,
                 });
             }
         });

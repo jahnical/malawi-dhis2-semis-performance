@@ -30,7 +30,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
   const { sort, order, orderBy, createSortHandler, withSortableColumns } = useTableSort({ onSortChange: () => setPagination((prev) => ({ ...prev, page: 1 })) })
   const [selected, setSelected] = useState<{ id: any, label: string }>({ id: dataStoreData.performance?.programStages?.[0].programStage, label: "" });
   const { academicYear, grade, class: section, schoolName, school, programStage } = urlParameters
-  const { getData, tableData, loading, sortableKeys } = useTableData({ module: Modules.Performance });
+  const { getData, tableData, loading, sortableKeys, updateRow } = useTableData({ module: Modules.Performance });
   const [filterState, setFilterState] = useState<{ dataElements: any[], attributes: any[] }>({ attributes: [], dataElements: [] });
   const { columns } = useHeader({ dataStoreData, programConfigData: program as unknown as ProgramConfig, programStage: selected.id! });
   const values = { [dataStoreData.registration.grade]: grade }
@@ -148,6 +148,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
                 rowsData: tableData.data, mode: editionMode, dataElementIds, program: program!.id,
                 headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }),
                 performanceConfig: dataStoreData.performance,
+                onRowUpdate: updateRow,
               })}
               defaultFilterNumber={5}
               filterState={filterState}
