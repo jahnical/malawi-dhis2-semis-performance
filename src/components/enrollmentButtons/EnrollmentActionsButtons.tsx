@@ -52,7 +52,7 @@ function EnrollmentActionsButtons({ setEditionMode, editionMode, i18n, baseUrl }
                     ...(grade ? [`${selectedDataStoreKey.registration.grade}:in:${grade}`] : []),
                     ...(section ? [`${selectedDataStoreKey.registration.section}:in:${section}`] : []),
                 ]}
-                label={i18n.t('Export students performace')}
+                label={i18n.t('Export learners performace')}
                 module='performance'
                 onError={(e: any) => { showAlert(e) }}
                 programConfig={programData!}
