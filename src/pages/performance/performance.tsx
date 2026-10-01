@@ -123,6 +123,9 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
   const dataElementIds: any = groupSubjectIds
     ? allStageDataElementIds?.filter((id: string) => groupSubjectIds.has(id))
     : allStageDataElementIds;
+  // Columns always shown regardless of Standard Group filtering (e.g. term remarks).
+  const alwaysVisibleIds = [dataStoreData.performance?.termRemarksMapping?.dataElement]
+    .filter((id): id is string => Boolean(id));
 
   return (
     <div style={{ height: "85vh" }}>
@@ -143,10 +146,10 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
               programConfig={program!}
               title={i18n.t("Performance")}
               viewPortWidth={viewPortWidth}
-              columns={withSortableColumns(changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }), sortableKeys)}
+              columns={withSortableColumns(changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds, alwaysVisibleIds, subjectsOrder: dataStoreData.performance?.subjects }), sortableKeys)}
               tableData={includeFields({
                 rowsData: tableData.data, mode: editionMode, dataElementIds, program: program!.id,
-                headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }),
+                headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds, alwaysVisibleIds, subjectsOrder: dataStoreData.performance?.subjects }),
                 performanceConfig: dataStoreData.performance,
                 onRowUpdate: updateRow,
               })}

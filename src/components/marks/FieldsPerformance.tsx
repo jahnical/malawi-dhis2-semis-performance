@@ -34,6 +34,11 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { dataElements, value, program, originalData, performanceConfig, onRowUpdate } = props;
     const [values, setValues] = useState({ ...value })
 
+    // True when this cell is a grade field (auto-populated, so render as input, not dropdown).
+    const isGradeField = (performanceConfig as any)?.subjects?.some(
+        (subject: any) => subject.gradeDataElement === dataElements?.id
+    )
+
     const { uploadValues } = useUploadEvents()
     const { saveMarks, error, loading, success } = useSaveMarks()
 
@@ -51,10 +56,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
         runRulesEngine({ overrideValues: memoizedValues, overrideVariables: memoizedDataElements as any })
     }, [value, newMark])
 
-    // Picks up a value patched into this row from elsewhere (e.g. a grade auto-computed by
-    // the paired score field's own save) without needing a full table refetch. Compares
-    // against the previously seen prop, not against newMark, so this never fires on mount
-    // or fights with the user's own in-progress typing.
+    // Picks up a value patched into this row from elsewhere (e.g. an auto-computed grade).
     const prevExternalValue = useRef(dataElements?.value)
     useEffect(() => {
         if (prevExternalValue.current !== dataElements?.value) {
@@ -142,9 +144,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                         }
                         if (gradeDataValue) {
                             originalData[gradeDataValue.dataElement] = gradeDataValue.value;
-                            // The paired grade field is its own table cell/component instance -
-                            // patch just this row locally so it picks up the new value, instead
-                            // of refetching the whole table.
+                            // Patch the grade cell locally instead of refetching the table.
                             onRowUpdate?.(
                                 (row) => row.trackedEntity === value?.trackedEntity,
                                 { [gradeDataValue.dataElement]: gradeDataValue.value }
@@ -176,7 +176,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                     handleChange: handleChange,
                     field: updatedVariables[0],
                     content: updatedVariables[0]?.content || "",
-                    fieldType: updatedVariables[0]?.valueType,
+                    fieldType: isGradeField ? 'TEXT' : updatedVariables[0]?.valueType,
                     options: updatedVariables[0]?.options?.optionSet?.options
                 })
             }

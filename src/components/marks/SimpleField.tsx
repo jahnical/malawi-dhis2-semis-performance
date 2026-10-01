@@ -11,6 +11,8 @@ type SimpleFieldProps = {
     visible?: boolean;
     disabled?: boolean;
     value: string | number;
+    /** HTML input type - 'text' for alphabetic values like grade codes (e.g. "A"/"Pass"). */
+    inputType?: 'number' | 'text';
     handleBlur: (e: React.FocusEvent<HTMLInputElement>) => void;
     handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
@@ -26,6 +28,7 @@ export default function SimpleField(props: SimpleFieldProps) {
         visible = true,
         disabled = false,
         value,
+        inputType = 'number',
         handleBlur,
         handleChange,
         ...otherProps
@@ -53,8 +56,8 @@ export default function SimpleField(props: SimpleFieldProps) {
                 <input
                     {...field}
                     {...otherProps}
-                    min={0}
-                    type="number"
+                    {...(inputType === 'number' ? { min: 0 } : {})}
+                    type={inputType}
                     key={field?.id || ''}
                     value={value}
                     onBlur={handleBlur}

@@ -9,6 +9,12 @@ export function performanceFieldsMapping(props: SimpleFieldProps & { fieldType: 
         case 'LIST': return (
             <SingleSelect {...rest} errorText={rest?.content} options={options} />
         )
+        case 'TEXT': return (
+            <SimpleField
+                {...rest as any}
+                inputType="text"
+            />
+        )
         default: return (
             <SimpleField
                 {...rest as any}

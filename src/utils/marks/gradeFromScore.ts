@@ -30,11 +30,8 @@ function toScore(value: unknown): number | null {
 }
 
 /**
- * Resolves the paired grade dataElement's value from an edited score, mirroring Android's
- * PerformanceViewModel.resolveGradeCode/fieldState - web previously had no equivalent, so a
- * teacher could save a grade that disagreed with what the same score auto-resolves to on
- * mobile. Returns null when the edited dataElement has no paired grade dataElement
- * configured, or the score doesn't fall in any configured range.
+ * Resolves the paired grade dataElement's value from an edited score (mirrors Android's
+ * resolveGradeCode). Returns null if there's no paired grade dataElement, or no range matches.
  */
 function getGradeDataValue({
     editedScoreDataElement,
