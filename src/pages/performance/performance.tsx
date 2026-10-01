@@ -1,7 +1,7 @@
 import { useRecoilValue } from 'recoil';
 import { D2I18n, ProgramConfig } from 'dhis2-semis-types'
 import React, { useEffect, useMemo, useState } from "react";
-import { TableDataRefetch, Modules } from "dhis2-semis-types"
+import { TableDataRefetch, Modules, VariablesTypes } from "dhis2-semis-types"
 import { InfoPage, SwitchButtonView, useSchoolCalendarKey } from 'dhis2-semis-components'
 import { Table } from "dhis2-semis-components";
 import EnrollmentActionsButtons from "../../components/enrollmentButtons/EnrollmentActionsButtons";
@@ -30,7 +30,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
   const { sort, order, orderBy, createSortHandler, withSortableColumns } = useTableSort({ onSortChange: () => setPagination((prev) => ({ ...prev, page: 1 })) })
   const [selected, setSelected] = useState<{ id: any, label: string }>({ id: dataStoreData.performance?.programStages?.[0].programStage, label: "" });
   const { academicYear, grade, class: section, schoolName, school, programStage } = urlParameters
-  const { getData, tableData, loading, sortableKeys } = useTableData({ module: Modules.Performance });
+  const { getData, tableData, loading, sortableKeys, updateRow } = useTableData({ module: Modules.Performance });
   const [filterState, setFilterState] = useState<{ dataElements: any[], attributes: any[] }>({ attributes: [], dataElements: [] });
   const { columns } = useHeader({ dataStoreData, programConfigData: program as unknown as ProgramConfig, programStage: selected.id! });
   const values = { [dataStoreData.registration.grade]: grade }
@@ -123,6 +123,13 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
   const dataElementIds: any = groupSubjectIds
     ? allStageDataElementIds?.filter((id: string) => groupSubjectIds.has(id))
     : allStageDataElementIds;
+  // Columns always shown regardless of Standard Group filtering (e.g. term remarks).
+  const alwaysVisibleIds = [dataStoreData.performance?.termRemarksMapping?.dataElement]
+    .filter((id): id is string => Boolean(id));
+  // Student identifier columns (attributes) stay fixed while the rest of the table scrolls.
+  const stickyColumnIds = (updatedVariables ?? [])
+    .filter((column: any) => column.type === VariablesTypes.Attribute)
+    .map((column: any) => column.id);
 
   return (
     <div style={{ height: "85vh" }}>
@@ -143,11 +150,12 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
               programConfig={program!}
               title={i18n.t("Performance")}
               viewPortWidth={viewPortWidth}
-              columns={withSortableColumns(changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }), sortableKeys)}
+              columns={withSortableColumns(changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds, alwaysVisibleIds, subjectsOrder: dataStoreData.performance?.subjects }), sortableKeys)}
               tableData={includeFields({
                 rowsData: tableData.data, mode: editionMode, dataElementIds, program: program!.id,
-                headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds }),
+                headerRows: changeDataElementType({ headerRows: updatedVariables as unknown as any, dataElementIds, alwaysVisibleIds, subjectsOrder: dataStoreData.performance?.subjects }),
                 performanceConfig: dataStoreData.performance,
+                onRowUpdate: updateRow,
               })}
               defaultFilterNumber={5}
               filterState={filterState}
@@ -161,6 +169,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
               order={order}
               orderBy={orderBy}
               createSortHandler={createSortHandler}
+              stickyColumnIds={stickyColumnIds}
               beforeSettings={<SwitchButtonView items={filterProgramStages(program, dataStoreData.performance)} onSelect={addProgramStageToUrl} selected={selected} setSelected={setSelected} />}
             />
           </>

@@ -1,11 +1,12 @@
 import { format } from 'date-fns';
 import { useRecoilState } from 'recoil';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSaveMarks from '../../hooks/marks/useSaveMarks';
 import { EnrollmentStatus, TableDataRefetch } from 'dhis2-semis-types';
 import { RulesEngine, useUploadEvents, useUrlParams } from 'dhis2-semis-functions';
 import { performanceFieldsMapping } from './performanceFieldsMapping';
 import { getTermRemarkDataValue, PerformanceConfig } from '../../utils/marks/termRemarks';
+import { getGradeDataValue } from '../../utils/marks/gradeFromScore';
 import { subjectsForGrade } from '../../utils/subjects/subjectsForGrade';
 
 interface valueType extends Record<string, any> {
@@ -24,13 +25,19 @@ type FieldsPerformancePros = {
     program: string
     originalData: any
     performanceConfig?: PerformanceConfig
+    onRowUpdate?: (matcher: (row: Record<string, any>) => boolean, patch: Record<string, any>) => void
 }
 
 export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { urlParameters } = useUrlParams()
     const { programStage, schoolName, grade } = urlParameters
-    const { dataElements, value, program, originalData, performanceConfig } = props;
+    const { dataElements, value, program, originalData, performanceConfig, onRowUpdate } = props;
     const [values, setValues] = useState({ ...value })
+
+    // True when this cell is a grade field (auto-populated, so render as input, not dropdown).
+    const isGradeField = (performanceConfig as any)?.subjects?.some(
+        (subject: any) => subject.gradeDataElement === dataElements?.id
+    )
 
     const { uploadValues } = useUploadEvents()
     const { saveMarks, error, loading, success } = useSaveMarks()
@@ -48,6 +55,15 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
     useEffect(() => {
         runRulesEngine({ overrideValues: memoizedValues, overrideVariables: memoizedDataElements as any })
     }, [value, newMark])
+
+    // Picks up a value patched into this row from elsewhere (e.g. an auto-computed grade).
+    const prevExternalValue = useRef(dataElements?.value)
+    useEffect(() => {
+        if (prevExternalValue.current !== dataElements?.value) {
+            prevExternalValue.current = dataElements?.value
+            setNewMark(dataElements?.value)
+        }
+    }, [dataElements?.value])
 
     const handleChange = (e: any) => {
         const newValue = e?.target?.value ?? e
@@ -71,9 +87,15 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
             performanceConfig,
             applicableSubjectIds
         })
+        const gradeDataValue = getGradeDataValue({
+            editedScoreDataElement: dataElements?.id ?? "",
+            editedScore: newMark,
+            performanceConfig
+        })
         const dataValues = [
             { value: newMark, dataElement: dataElements?.id },
-            ...(termRemarkDataValue ? [termRemarkDataValue] : [])
+            ...(termRemarkDataValue ? [termRemarkDataValue] : []),
+            ...(gradeDataValue ? [gradeDataValue] : [])
         ]
 
         if (!values?.programStageEvent) {
@@ -120,6 +142,14 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                         if (termRemarkDataValue) {
                             originalData[termRemarkDataValue.dataElement] = termRemarkDataValue.value;
                         }
+                        if (gradeDataValue) {
+                            originalData[gradeDataValue.dataElement] = gradeDataValue.value;
+                            // Patch the grade cell locally instead of refetching the table.
+                            onRowUpdate?.(
+                                (row) => row.trackedEntity === value?.trackedEntity,
+                                { [gradeDataValue.dataElement]: gradeDataValue.value }
+                            )
+                        }
                     })
                     .catch(() => {
                         setTimeout(() => {
@@ -146,7 +176,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                     handleChange: handleChange,
                     field: updatedVariables[0],
                     content: updatedVariables[0]?.content || "",
-                    fieldType: updatedVariables[0]?.valueType,
+                    fieldType: isGradeField ? 'TEXT' : updatedVariables[0]?.valueType,
                     options: updatedVariables[0]?.options?.optionSet?.options
                 })
             }
