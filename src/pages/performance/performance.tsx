@@ -129,7 +129,7 @@ export default function Performance({ i18n, baseUrl }: { i18n: D2I18n, baseUrl: 
       {
         !(Boolean(schoolName) && Boolean(school) && Boolean(grade)) ?
           <InfoPage
-            title={i18n.t("SEMIS-Performance")}
+            title={urlParameters.sectionType === "staff" ? i18n.t("SEMIS-Staff-Performance") : i18n.t("SEMIS-Learner-Performance")}
             sections={[
               {
                 sectionTitle: i18n.t("Follow the instructions to proceed:"),
