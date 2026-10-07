@@ -3,7 +3,9 @@ import { useRecoilState } from 'recoil';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import useSaveMarks from '../../hooks/marks/useSaveMarks';
 import { EnrollmentStatus, TableDataRefetch } from 'dhis2-semis-types';
-import { RulesEngine, useUploadEvents, useUrlParams } from 'dhis2-semis-functions';
+import { RulesEngine, useUploadEvents, useUrlParams, calendarForAcademicYear, stageEventDate } from 'dhis2-semis-functions';
+import { useSchoolCalendarKey } from 'dhis2-semis-components';
+import useGetSelectedKeys from '../../hooks/config/useGetSelectedKeys';
 import { performanceFieldsMapping } from './performanceFieldsMapping';
 import { getTermRemarkDataValue, PerformanceConfig } from '../../utils/marks/termRemarks';
 import { getGradeDataValue } from '../../utils/marks/gradeFromScore';
@@ -30,7 +32,16 @@ type FieldsPerformancePros = {
 
 export default function FieldsPerformance(props: FieldsPerformancePros) {
     const { urlParameters } = useUrlParams()
-    const { programStage, schoolName, grade } = urlParameters
+    const { programStage, schoolName, grade, academicYear } = urlParameters
+    const schoolCalendar = useSchoolCalendarKey() as any
+    const { dataStoreData } = useGetSelectedKeys()
+    // Marks are dated at the end of their term (school calendar of the selected academic year), never after today
+    const termEventDate = () => stageEventDate(
+        calendarForAcademicYear(schoolCalendar?.schoolCalendar, academicYear, schoolCalendar?.defaults?.academicYear) as any,
+        (dataStoreData as any)?.performance?.programStages?.map((x: any) => x.programStage) ?? [],
+        programStage ?? undefined,
+        format(new Date(), "yyyy-MM-dd")
+    )
     const { dataElements, value, program, originalData, performanceConfig, onRowUpdate } = props;
     const [values, setValues] = useState({ ...value })
 
@@ -110,8 +121,8 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                     event: value?.programStageEvent,
                     enrollment: value?.enrollmentId,
                     trackedEntity: value?.trackedEntity,
-                    occurredAt: format(new Date(), "yyyy-MM-dd"),
-                    scheduledAt: format(new Date(), "yyyy-MM-dd"),
+                    occurredAt: termEventDate(),
+                    scheduledAt: termEventDate(),
                     dataValues
                 }]
             }
@@ -129,7 +140,7 @@ export default function FieldsPerformance(props: FieldsPerformancePros) {
                     enrollment: value?.enrollmentId,
                     event: value?.programStageEvent,
                     trackedEntity: value?.trackedEntity,
-                    occurredAt: value?.registrationEventOccurredAt,
+                    occurredAt: termEventDate(),
                 }]
             }
 
